@@ -1,118 +1,123 @@
-/**
- * Sample React Native App
- * https://github.com/facebook/react-native
- *
- * @format
- */
-
-import React from 'react';
-import type {PropsWithChildren} from 'react';
+import React, {useEffect, useState} from 'react';
 import {
-  SafeAreaView,
-  ScrollView,
-  StatusBar,
-  StyleSheet,
-  Text,
-  useColorScheme,
   View,
+  Text,
+  Button,
+  FlatList,
+  TextInput,
+  StyleSheet,
 } from 'react-native';
-
 import {
-  Colors,
-  DebugInstructions,
-  Header,
-  LearnMoreLinks,
-  ReloadInstructions,
-} from 'react-native/Libraries/NewAppScreen';
+  createTable,
+  insertItem,
+  deleteItem,
+  getItemsWithOptions,
+  Item,
+} from './src/database/SQlite storage';
+import CheckBox from '@react-native-community/checkbox';
 
-type SectionProps = PropsWithChildren<{
-  title: string;
-}>;
+const App: React.FC = () => {
+  const [items, setItems] = useState<any[]>([]);
+  const [name, setName] = useState<string>('');
+  const [value, setValue] = useState<number>(0);
+  const [columns, setColumns] = useState<string[]>(['id', 'name', 'value']);
+  const [filter, setFilter] = useState<string>('');
 
-function Section({children, title}: SectionProps): React.JSX.Element {
-  const isDarkMode = useColorScheme() === 'dark';
-  return (
-    <View style={styles.sectionContainer}>
-      <Text
-        style={[
-          styles.sectionTitle,
-          {
-            color: isDarkMode ? Colors.white : Colors.black,
-          },
-        ]}>
-        {title}
-      </Text>
-      <Text
-        style={[
-          styles.sectionDescription,
-          {
-            color: isDarkMode ? Colors.light : Colors.dark,
-          },
-        ]}>
-        {children}
-      </Text>
-    </View>
-  );
-}
+  useEffect(() => {
+    createTable();
+    fetchItems();
+  }, []);
 
-function App(): React.JSX.Element {
-  const isDarkMode = useColorScheme() === 'dark';
+  const fetchItems = () => {
+    getItemsWithOptions(columns, filter ? `WHERE ${filter}` : '', [], setItems);
+  };
 
-  const backgroundStyle = {
-    backgroundColor: isDarkMode ? Colors.darker : Colors.lighter,
+  const addItem = () => {
+    if (name && value) {
+      insertItem(name, value);
+      fetchItems();
+      setName('');
+      setValue(0);
+    }
+  };
+
+  const removeItem = (id: number) => {
+    deleteItem(id);
+    fetchItems();
+  };
+
+  const toggleColumn = (column: string) => {
+    setColumns(prevColumns =>
+      prevColumns.includes(column)
+        ? prevColumns.filter(col => col !== column)
+        : [...prevColumns, column],
+    );
   };
 
   return (
-    <SafeAreaView style={backgroundStyle}>
-      <StatusBar
-        barStyle={isDarkMode ? 'light-content' : 'dark-content'}
-        backgroundColor={backgroundStyle.backgroundColor}
+    <View style={styles.container}>
+      <TextInput
+        style={styles.input}
+        placeholder="Imie"
+        value={name}
+        onChangeText={setName}
       />
-      <ScrollView
-        contentInsetAdjustmentBehavior="automatic"
-        style={backgroundStyle}>
-        <Header />
-        <View
-          style={{
-            backgroundColor: isDarkMode ? Colors.black : Colors.white,
-          }}>
-          <Section title="Step One">
-            Edit <Text style={styles.highlight}>App.tsx</Text> to change this
-            screen and then come back to see your edits.
-          </Section>
-          <Section title="See Your Changes">
-            <ReloadInstructions />
-          </Section>
-          <Section title="Debug">
-            <DebugInstructions />
-          </Section>
-          <Section title="Learn More">
-            Read the docs to discover what to do next:
-          </Section>
-          <LearnMoreLinks />
-        </View>
-      </ScrollView>
-    </SafeAreaView>
+      <TextInput
+        style={styles.input}
+        placeholder="Wprowadz wartosc"
+        value={value.toString()}
+        onChangeText={text => setValue(parseInt(text, 10) || 0)}
+        keyboardType="numeric"
+      />
+      <Button title="Dodaj item" onPress={addItem} />
+
+      <View style={styles.columnSelector}>
+        <Text>Select columns to display:</Text>
+        {['id', 'name', 'value'].map(col => (
+          <View key={col} style={styles.checkboxContainer}>
+            <CheckBox
+              value={columns.includes(col)}
+              onValueChange={() => toggleColumn(col)}
+            />
+            <Text>{col}</Text>
+          </View>
+        ))}
+      </View>
+
+      <TextInput
+        style={styles.input}
+        placeholder="np: value > 80"
+        value={filter}
+        onChangeText={setFilter}
+      />
+      <Button title="filtruj" onPress={fetchItems} />
+
+      <FlatList
+        data={items}
+        keyExtractor={(item, index) => index.toString()}
+        renderItem={({item}) => (
+          <View style={styles.item}>
+            {Object.entries(item).map(([key, value]) => (
+              <Text key={key}>
+                {key}: {String(value)}
+              </Text>
+            ))}
+            {columns.includes('id') && (
+              <Button title="Usun" onPress={() => removeItem(item.id)} />
+            )}
+          </View>
+        )}
+      />
+    </View>
   );
-}
+};
 
 const styles = StyleSheet.create({
-  sectionContainer: {
-    marginTop: 32,
-    paddingHorizontal: 24,
-  },
-  sectionTitle: {
-    fontSize: 24,
-    fontWeight: '600',
-  },
-  sectionDescription: {
-    marginTop: 8,
-    fontSize: 18,
-    fontWeight: '400',
-  },
-  highlight: {
-    fontWeight: '700',
-  },
+  container: {padding: 20},
+  input: {borderWidth: 1, marginBottom: 10, padding: 5, borderRadius: 5},
+  columnSelector: {marginBottom: 20},
+  checkboxContainer: {flexDirection: 'row', alignItems: 'center'},
+  item: {marginBottom: 10, padding: 10, borderWidth: 1, borderRadius: 5},
 });
 
 export default App;
