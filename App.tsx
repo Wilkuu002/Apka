@@ -72,7 +72,7 @@ const App: React.FC = () => {
       <Button title="Dodaj item" onPress={addItem} />
 
       <View style={styles.columnSelector}>
-        <Text>Select columns to display:</Text>
+        <Text>Wybierz dane ktore chcesz zobaczyc:</Text>
         {['id', 'name', 'value'].map(col => (
           <View key={col} style={styles.checkboxContainer}>
             <CheckBox
